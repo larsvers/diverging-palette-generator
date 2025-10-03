@@ -107,36 +107,8 @@ st.sidebar.markdown("**Middle hue/color**")
 use_neutral_center = st.sidebar.checkbox("Use neutral center", value=True, help="Check to use gray center, uncheck for colored center")
 use_classic_diverging = st.sidebar.checkbox("Classic diverging (HCL Wizard style)", value=True, help="Use classic diverging_hcl for constant hues per arm (like HCL Wizard)")
 
-# Brand color waypoints mode
-st.sidebar.markdown("---")
-use_brand_waypoints = st.sidebar.checkbox("🎨 Use Brand Color Waypoints", value=False, help="Generate palette using brand colors as waypoints (like Leonardo)")
-
-if use_brand_waypoints:
-    st.sidebar.markdown("**Brand Color Waypoints**")
-    st.sidebar.markdown("*Add 2-5 brand colors that the palette should pass through*")
-    
-    # Initialize waypoints in session state
-    if 'waypoint_colors' not in st.session_state:
-        st.session_state.waypoint_colors = ["#1E3A8A", "#FFFFFF", "#DC2626"]  # Default: blue, white, red
-    
-    # Number of waypoints
-    num_waypoints = st.sidebar.number_input("Number of waypoints", min_value=2, max_value=7, value=len(st.session_state.waypoint_colors))
-    
-    # Adjust waypoints list if needed
-    while len(st.session_state.waypoint_colors) < num_waypoints:
-        st.session_state.waypoint_colors.append("#808080")
-    while len(st.session_state.waypoint_colors) > num_waypoints:
-        st.session_state.waypoint_colors.pop()
-    
-    # Color pickers for each waypoint
-    waypoint_colors = []
-    for i in range(num_waypoints):
-        color = st.sidebar.color_picker(f"Waypoint {i+1}", st.session_state.waypoint_colors[i], key=f"waypoint_{i}")
-        waypoint_colors.append(color)
-        st.session_state.waypoint_colors[i] = color
-    
-    # Power setting for brand waypoints
-    waypoint_power = st.sidebar.slider("Interpolation power", 0.1, 3.0, 1.0, 0.1, help="Controls smoothness of interpolation between waypoints")
+# Focus on parameter-based approach - waypoints feature disabled for now
+use_brand_waypoints = False
 
 if not use_neutral_center:
     col1, col2 = st.sidebar.columns(2)
@@ -271,45 +243,49 @@ brand_color_right_hex = st.sidebar.color_picker("Right brand color", "#DC2626", 
 brand_color_left_rgb = hex_to_rgb(brand_color_left_hex)
 brand_color_right_rgb = hex_to_rgb(brand_color_right_hex)
 
+# Brand color analyzer
+if st.sidebar.button("🔍 Analyze Brand Colors", help="Extract optimal parameters from your brand colors"):
+    generator = DivergingPaletteGenerator()
+    
+    h1, c1, l1 = generator.hex_to_hcl(brand_color_left_hex)
+    h3, c3, l3 = generator.hex_to_hcl(brand_color_right_hex)
+    
+    st.sidebar.markdown("**📊 Brand Color Analysis:**")
+    st.sidebar.markdown(f"Left: H={h1:.0f}°, C={c1:.0f}, L={l1:.0f}")
+    st.sidebar.markdown(f"Right: H={h3:.0f}°, C={c3:.0f}, L={l3:.0f}")
+    
+    st.sidebar.markdown("**🎯 Suggested Settings:**")
+    st.sidebar.markdown(f"• Left hue: **{h1:.0f}**")
+    st.sidebar.markdown(f"• Right hue: **{h3:.0f}**")
+    st.sidebar.markdown(f"• Left lightness: **{l1:.0f}**")
+    st.sidebar.markdown(f"• Right lightness: **{l3:.0f}**")
+    st.sidebar.markdown(f"• Chroma peak: **{max(c1, c3, 50):.0f}**")
+    st.sidebar.markdown("• Use Classic diverging ✅")
+    
+    suggested_power = 0.8 if abs(95 - (l1 + l3)/2) > 50 else 1.2
+    st.sidebar.markdown(f"• Power: **{suggested_power}**")
+
 # Generate palette button
 if st.sidebar.button("🎨 Generate Palette", type="primary"):
     with st.spinner("Generating palette..."):
         try:
             generator = DivergingPaletteGenerator()
             
-            if use_brand_waypoints:
-                # Use brand color waypoints mode
-                palette = generator.generate_palette_from_brand_colors(
-                    brand_colors=waypoint_colors,
-                    n=n_colors,
-                    power=waypoint_power,
-                    output_format="rgb_strings"
-                )
-                
-                st.sidebar.info("🎨 Generated using brand color waypoints")
-                
-                # Show waypoint analysis
-                st.sidebar.markdown("**Waypoint Analysis:**")
-                for i, color in enumerate(waypoint_colors):
-                    h, c, l = generator.hex_to_hcl(color)
-                    st.sidebar.markdown(f"  {i+1}: H={h:.0f}°, C={c:.0f}, L={l:.0f}")
-                    
-            else:
-                # Use traditional parameter-based mode
-                # Adjust parameters based on neutral center setting
-                h2_param = None if use_neutral_center else h2
-                c2_param = None if use_neutral_center else 20  # Small chroma for colored center
-                
-                palette = generator.generate_palette(
-                    n=n_colors,
-                    h1=h1, h2=h2_param, h3=h3,
-                    c1=c1, c2=c2_param, c3=c3,
-                    l1=l1, l2=l2, l3=l3,
-                    p1=p1, p2=p2, p3=p3, p4=p4,
-                    cmax1=cmax1, cmax2=cmax2,
-                    output_format="rgb_strings",  # Work with RGB as requested
-                    use_classic_diverging=use_classic_diverging
-                )
+            # Use parameter-based mode (waypoints disabled)
+            # Adjust parameters based on neutral center setting
+            h2_param = None if use_neutral_center else h2
+            c2_param = None if use_neutral_center else 20  # Small chroma for colored center
+            
+            palette = generator.generate_palette(
+                n=n_colors,
+                h1=h1, h2=h2_param, h3=h3,
+                c1=c1, c2=c2_param, c3=c3,
+                l1=l1, l2=l2, l3=l3,
+                p1=p1, p2=p2, p3=p3, p4=p4,
+                cmax1=cmax1, cmax2=cmax2,
+                output_format="rgb_strings",  # Work with RGB as requested
+                use_classic_diverging=use_classic_diverging
+            )
             
             st.session_state.generated_palette = palette
             st.sidebar.success(f"✅ Generated {len(palette)} colors!")
@@ -535,14 +511,9 @@ if st.session_state.generated_palette is not None:
         st.header("🏷️ Brand Color Proximity Analysis")
         
         # Run brand proximity analysis using hex colors for consistency
-        if use_brand_waypoints:
-            # Use the waypoint colors for proximity analysis
-            brand_colors = waypoint_colors
-            brand_names = [f"Waypoint {i+1}" for i in range(len(waypoint_colors))]
-        else:
-            # Use the traditional brand color inputs
-            brand_colors = [brand_color_left_hex, brand_color_right_hex]
-            brand_names = ["Left Brand Color", "Right Brand Color"]
+        # Use the traditional brand color inputs (waypoints disabled)
+        brand_colors = [brand_color_left_hex, brand_color_right_hex]
+        brand_names = ["Left Brand Color", "Right Brand Color"]
         
         tester = BrandColorProximityTester()
         
