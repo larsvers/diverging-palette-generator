@@ -35,6 +35,106 @@ class DivergingPaletteGenerator:
         if not COLORSPACE_AVAILABLE:
             raise ImportError("colorspace package is required. Install with: pip install colorspace")
     
+    @staticmethod
+    def hex_to_hcl(hex_color):
+        """Convert hex color to HCL coordinates (CIELAB-based)."""
+        # Convert hex to RGB
+        hex_color = hex_color.lstrip('#')
+        r = int(hex_color[0:2], 16) / 255.0
+        g = int(hex_color[2:4], 16) / 255.0
+        b = int(hex_color[4:6], 16) / 255.0
+        
+        # Convert RGB to CIELAB
+        lab = cspace_convert([r, g, b], "sRGB1", "CIELab")
+        L, a, b_lab = lab
+        
+        # Convert LAB to HCL
+        C = np.sqrt(a**2 + b_lab**2)  # Chroma
+        H = np.degrees(np.arctan2(b_lab, a)) % 360  # Hue
+        
+        return H, C, L
+    
+    def generate_palette_from_brand_colors(
+        self,
+        brand_colors: List[str],
+        n: int = 199,
+        power: Union[float, List[float]] = 1.0,
+        fixup: bool = True,
+        output_format: str = "hex"
+    ) -> List[str]:
+        """
+        Generate a diverging palette using brand colors as waypoints.
+        
+        Args:
+            brand_colors: List of hex colors to use as waypoints (2-5 colors recommended)
+            n: Number of colors in final palette
+            power: Power transformation(s) for interpolation curves
+            fixup: Whether to correct out-of-gamut colors
+            output_format: Output format ("hex", "rgb", "rgb_strings")
+            
+        Returns:
+            List of color values in specified format
+        """
+        if len(brand_colors) < 2:
+            raise ValueError("At least 2 brand colors are required")
+        if len(brand_colors) > 7:
+            raise ValueError("Maximum 7 brand colors supported")
+        
+        # Convert brand colors to HCL coordinates
+        h_vals = []
+        c_vals = []
+        l_vals = []
+        
+        for color in brand_colors:
+            h, c, l = self.hex_to_hcl(color)
+            h_vals.append(h)
+            c_vals.append(c)
+            l_vals.append(l)
+        
+        # Handle power parameter
+        if isinstance(power, (int, float)):
+            power_vals = [power] * 4  # Default for divergingx_hcl
+        else:
+            power_vals = list(power)
+            
+        # Create palette using brand colors as waypoints
+        palette = divergingx_hcl(
+            h=h_vals,
+            c=c_vals,
+            l=l_vals,
+            power=power_vals,
+            fixup=fixup
+        )
+        
+        # Get colors
+        colors = palette.colors(n)
+        
+        # Convert to requested format
+        if output_format == "hex":
+            return colors
+        elif output_format == "rgb":
+            # Convert hex to RGB tuples (0-1 range)
+            rgb_list = []
+            for color in colors:
+                hex_color = color.lstrip('#')
+                r = int(hex_color[0:2], 16) / 255.0
+                g = int(hex_color[2:4], 16) / 255.0
+                b = int(hex_color[4:6], 16) / 255.0
+                rgb_list.append((r, g, b))
+            return rgb_list
+        elif output_format == "rgb_strings":
+            # Convert hex to CSS-style rgb() strings
+            rgb_strings = []
+            for color in colors:
+                hex_color = color.lstrip('#')
+                r = int(hex_color[0:2], 16)
+                g = int(hex_color[2:4], 16)
+                b = int(hex_color[4:6], 16)
+                rgb_strings.append(f"rgb({r}, {g}, {b})")
+            return rgb_strings
+        else:
+            raise ValueError("output_format must be 'hex', 'rgb', or 'rgb_strings'")
+    
     def generate_palette(
         self,
         n: int = 199,
