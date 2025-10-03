@@ -4,7 +4,7 @@ Quick test to verify UI dependencies work
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 def test_ui_imports():
     """Test that all UI dependencies can be imported."""

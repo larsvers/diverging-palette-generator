@@ -1,144 +1,112 @@
 # Diverging Color Palette Generator
 
-A Python tool for creating ColorBrewer-style diverging palettes with precise control over lightness and chroma curves using power transformations. Includes an interactive Streamlit UI for real-time palette design and analysis.
+**Creates ColorBrewer-style diverging palettes** with precise control over lightness and chroma curves using power transformations. Think "HCL Wizard but with brand color awareness."
+
+## 🚀 Quick Start
+
+```bash
+# Setup (one time)
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Launch interactive UI
+streamlit run ui/palette_builder.py
+
+# Test installation
+python tests/test_ui.py
+```
+
+## 🎯 What This Tool Does
+
+**Key capabilities:**
+
+- Generate 199-step continuous diverging palettes
+- Power transformation controls for curve shapes (narrow vs wide "hats")
+- CIELAB chroma analysis (matches HCL Wizard measurements)
+- Brand color proximity testing in CAM02-UCS space
+- Export formats: hex, RGB tuples, RGB strings
 
 ## 📁 Project Structure
 
 ```
 colour-diverging-tool/
 ├── src/                          # Core source code
-│   ├── __init__.py
-│   ├── diverging_palette_generator.py  # Main palette generation classes
-│   └── analysis_functions.py           # Color analysis functions
-├── ui/                           # User interface
-│   └── palette_builder.py       # Streamlit web app
-├── examples/                     # Example usage scripts  
-│   └── example_usage.py         # Comprehensive examples
+│   ├── diverging_palette_generator.py  # Main generator classes
+│   └── analysis_functions.py           # Color analysis (from existing Colab)
+├── ui/                           # Interactive interface
+│   └── palette_builder.py              # Streamlit web app
+├── examples/                     # Usage examples & tools
+│   ├── example_usage.py                # Comprehensive examples
+│   └── brand_analyzer.py              # Brand color parameter extraction
 ├── tests/                        # Test files
-│   └── test_basic.py            # Basic functionality tests
-├── docs/                         # Documentation
-│   ├── existing-functions.md    # Original analysis functions
-│   └── notes.md                 # Research notes
+│   ├── test_ui.py                      # UI functionality tests
+│   └── test_brand_waypoints.py         # Brand integration experiments
+├── docs/                         # Documentation & research
+│   ├── existing-functions.md           # Original analysis functions
+│   └── notes.md                        # Research notes
 ├── requirements.txt              # Python dependencies
-├── README.md                     # This file
-└── venv/                        # Virtual environment (created locally)
-```
-
-## 🚀 Quick Start
-
-### 1. Setup Environment
-
-```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Verify installation
-python tests/test_basic.py
-```
-
-### 2. Launch Interactive UI
-
-```bash
-# Start the Streamlit app
-streamlit run ui/palette_builder.py
-```
-
-This opens a web interface where you can:
-- 🎛️ Adjust all parameters with sliders and inputs
-- 🏷️ Input brand colors for proximity testing
-- 🎨 See real-time palette generation
-- 📊 View comprehensive analysis including Delta E, lightness curves, and brand proximity
-
-### 3. Use in Code
-
-```python
-from src.diverging_palette_generator import generate_colorbrewer_style_palette
-
-# Generate a 199-color palette
-palette = generate_colorbrewer_style_palette(
-    n=199,
-    left_hue=255,  # blue
-    right_hue=10,  # red
-    narrow_hat=True,
-    output_format="hex"  # or "rgb_strings" for your existing analysis functions
-)
+├── AGENTS.md                     # Quick reference for future work
+└── README.md                     # This file
 ```
 
 ## 🎛️ Interactive UI Features
 
-The Streamlit app provides a comprehensive interface with:
+**Parameter Controls:**
 
-### Parameter Controls
-- **Hue Settings**: Left, right, and middle hue controls
-- **Lightness Settings**: End and peak lightness values  
-- **Chroma Settings**: End chroma and peak chroma controls
-- **Power Transformations**: Precise control over curve shapes
-- **Brand Colors**: Input colors for proximity testing
+- Hue settings (left, right, optional middle)
+- Lightness settings (ends and peak with number inputs)
+- Chroma settings (ends and peaks)
+- Power transformations (curve shape controls)
+- Brand colors (for proximity testing)
 
-### Analysis Outputs
+**Analysis Outputs:**
+
 1. **Palette Visualization**: 199-color continuous scale
-2. **Delta E Analysis**: Adjacent color differences with statistics
-3. **Curve Analysis**: Lightness, chroma, hue plots with monotonicity checks
-4. **Brand Proximity**: Distance calculations to your brand colors
+2. **Curve Analysis**: Lightness/chroma/hue plots (3 charts in row)
+3. **Delta E Analysis**: All adjacent ΔE values in scrollable table
+4. **Brand Proximity**: CAM02-UCS distance to brand colors
 
-## 🔬 Core Features
-
-### Power Transformation Controls
-- `p2, p4` (lightness): Controls the "hat" width
-  - `< 1.0`: Narrower hat (ColorBrewer-style)
-  - `> 1.0`: Wider hat (Leonardo-style)
-- `p1, p3` (chroma): Controls chroma buildup speed
-
-### Brand Color Integration
-- Test proximity of palette colors to brand colors
-- CAM02-UCS perceptual distance calculations
-- Automatic conflict detection and warnings
-
-### Multiple Export Formats
-- **Hex**: `#1E3A8A` format
-- **RGB Strings**: `rgb(30, 58, 138)` format (compatible with existing analysis)
-- **RGB Tuples**: `(0.118, 0.227, 0.541)` format
-
-## 📊 Analysis Integration
-
-The tool integrates with your existing analysis functions from `docs/existing-functions.md`:
+## 💡 Usage in Code
 
 ```python
-from src.analysis_functions import get_delta_e, visualize_color_components
+from src.diverging_palette_generator import generate_colorbrewer_style_palette
 
 # Generate palette
-palette = generate_colorbrewer_style_palette(n=199, output_format="rgb_strings")
+palette = generate_colorbrewer_style_palette(
+    n=199, left_hue=255, right_hue=10,
+    output_format="rgb_strings"  # Compatible with existing analysis
+)
 
-# Use your existing analysis
+# Use with existing analysis functions
+from src.analysis_functions import get_delta_e
 delta_results = get_delta_e(palette, color_type="rgb")
 ```
 
-## 🎯 Use Cases
+## 🔬 Key Features
 
-1. **Brand-Consistent Palettes**: Generate palettes that work with your brand colors
-2. **ColorBrewer Replication**: Create palettes matching ColorBrewer's aesthetic
-3. **Parameter Exploration**: Understand how power transformations affect palette appearance
-4. **Colab Integration**: Export palettes for use in Jupyter/Colab notebooks
+### Power Transformation Controls
 
-## 🔧 Technical Details
+- `p2, p4` (lightness): Controls "hat" width (< 1.0 = narrow, > 1.0 = wide)
+- `p1, p3` (chroma): Controls chroma buildup speed
 
-Built on:
-- **colorspace**: Python port of R's colorspace package for HCL palette generation
-- **colorspacious**: CAM02-UCS color space conversions
-- **streamlit**: Interactive web interface
-- **matplotlib**: Visualization and analysis
+### Palette Modes
 
-The tool provides the exact functionality described in your research notes:
-- Power transformation controls like HCL Wizard
-- 199-step continuous palette output
-- Brand color proximity testing
-- ColorBrewer-style narrow hats vs Leonardo-style wide hats
+- **Classic diverging**: Constant hues per arm (blue stays blue, red stays red)
+- **Flexible diverging**: Allows hue interpolation (can create unwanted purples)
 
-## 📝 Next Steps
+### Brand Color Integration
 
-1. **Launch the UI**: `streamlit run ui/palette_builder.py`
-2. **Experiment with parameters**: Try different power values to see the effect
-3. **Test brand colors**: Input your actual brand colors for proximity testing
-4. **Export palettes**: Download results for use in your analysis pipeline
+- Proximity testing in CAM02-UCS space
+- Parameter suggestions based on brand color analysis
+- Distance calculations to optimize brand consistency
 
-The interactive UI makes it easy to understand the relationship between parameters and resulting palette aesthetics!
+## 📝 Notes
+
+- Uses Python `colorspace` package (port of R's colorspace)
+- CIELAB chroma analysis matches HCL Wizard measurements
+- sRGB gamut limitations affect achievable chroma at low lightness
+- Classic diverging mode recommended for clean blue-red palettes
+
+## Known issues
+
+- The two-way binding of the sliders and the input fields is not really working. Using the input fields will work (but using sliders after won't in most cases)
