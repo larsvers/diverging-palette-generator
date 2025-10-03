@@ -1,0 +1,5 @@
+numpy>=1.21.0
+matplotlib>=3.5.0
+colorspacious>=1.1.2
+colorspace>=0.3.4
+streamlit>=1.28.0
