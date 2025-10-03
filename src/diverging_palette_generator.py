@@ -54,7 +54,8 @@ class DivergingPaletteGenerator:
         cmax1: float = 60,  # left chroma peak
         cmax2: float = 60,  # right chroma peak
         fixup: bool = True,  # correct out-of-gamut colors
-        output_format: str = "hex"  # "hex", "rgb", or "rgb_strings"
+        output_format: str = "hex",  # "hex", "rgb", or "rgb_strings"
+        use_classic_diverging: bool = True  # Use diverging_hcl instead of divergingx_hcl
     ) -> List[str]:
         """
         Generate a diverging color palette with power transformation controls.
@@ -73,34 +74,46 @@ class DivergingPaletteGenerator:
             cmax1, cmax2: Maximum chroma values for smoother peaks
             fixup: Whether to correct out-of-gamut colors
             output_format: Output format ("hex", "rgb", "rgb_strings")
+            use_classic_diverging: Use classic diverging_hcl (True) or flexible divergingx_hcl (False)
             
         Returns:
             List of color values in specified format
         """
-        # Build parameters for divergingx_hcl (note: API is different from R version)
-        # The Python colorspace package uses different parameter names and structure
-        # For neutral midpoint, use a middle hue that's between the two ends
-        if h2 is None:
-            # Calculate a neutral hue between h1 and h3
-            h2 = (h1 + h3) / 2.0 if abs(h1 - h3) < 180 else ((h1 + h3 + 360) / 2.0) % 360
         
-        if c2 is None:
-            c2 = 0  # Neutral center has zero chroma
+        if use_classic_diverging and h2 is None:
+            # Use classic diverging_hcl for HCL Wizard-style palettes
+            # This maintains constant hues on each arm with neutral center
+            palette = diverging_hcl(
+                h=[h1, h3],  # Just the two end hues
+                c=max(cmax1, cmax2),  # Use maximum chroma value (this is the peak chroma)
+                l=[l1, l2],  # End lightness and peak lightness
+                power=p2,    # Use lightness power transformation
+                fixup=fixup
+            )
+        else:
+            # Use flexible divergingx_hcl for multi-hue palettes
+            # For neutral midpoint, use a middle hue that's between the two ends
+            if h2 is None:
+                # Calculate a neutral hue between h1 and h3
+                h2 = (h1 + h3) / 2.0 if abs(h1 - h3) < 180 else ((h1 + h3 + 360) / 2.0) % 360
             
-        h_vals = [h1, h2, h3]
-        c_vals = [c1, c2, c3]
-        l_vals = [l1, l2, l3]
-        power_vals = [p1, p2, p3, p4]
-        
-        # Create palette object
-        palette = divergingx_hcl(
-            h=h_vals,
-            c=c_vals, 
-            l=l_vals,
-            power=power_vals,
-            cmax=max(cmax1, cmax2),  # Python version uses single cmax
-            fixup=fixup
-        )
+            if c2 is None:
+                c2 = 0  # Neutral center has zero chroma
+                
+            h_vals = [h1, h2, h3]
+            c_vals = [c1, c2, c3]
+            l_vals = [l1, l2, l3]
+            power_vals = [p1, p2, p3, p4]
+            
+            # Create palette object
+            palette = divergingx_hcl(
+                h=h_vals,
+                c=c_vals, 
+                l=l_vals,
+                power=power_vals,
+                cmax=max(cmax1, cmax2),  # Python version uses single cmax
+                fixup=fixup
+            )
         
         # Get colors
         colors = palette.colors(n)
@@ -405,7 +418,8 @@ def generate_colorbrewer_style_palette(
     left_hue: float = 255,  # blue
     right_hue: float = 10,  # red
     narrow_hat: bool = True,
-    output_format: str = "hex"
+    output_format: str = "hex",
+    use_classic_diverging: bool = True
 ) -> List[str]:
     """
     Generate a ColorBrewer-style diverging palette with sensible defaults.
@@ -416,6 +430,7 @@ def generate_colorbrewer_style_palette(
         right_hue: Right arm hue (0-360)
         narrow_hat: Whether to use narrow hat like ColorBrewer (vs wider Leonardo-style)
         output_format: Output format ("hex", "rgb", "rgb_strings")
+        use_classic_diverging: Use classic diverging method (recommended for ColorBrewer style)
     
     Returns:
         List of colors in specified format
@@ -438,7 +453,8 @@ def generate_colorbrewer_style_palette(
         p4=p4,
         cmax1=cmax1,
         cmax2=cmax2,
-        output_format=output_format
+        output_format=output_format,
+        use_classic_diverging=use_classic_diverging
     )
 
 

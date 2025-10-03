@@ -102,25 +102,53 @@ def get_delta_e(color_values, color_type="hex", show_series=False):
 
     return results
 
-def visualize_color_components(cam02ucs_colors, show_chroma_hue=True, return_data=False):
+def visualize_color_components(cam02ucs_colors, show_chroma_hue=True, return_data=False, use_lab_chroma=True):
     """
     Visualizes or returns lightness, chroma, hue data
     """
-    L = [color[0] for color in cam02ucs_colors]
-    a = [color[1] for color in cam02ucs_colors]
-    b = [color[2] for color in cam02ucs_colors]
+    if use_lab_chroma:
+        # Convert CAM02-UCS back to RGB, then to CIELAB for HCL-compatible chroma
+        L = []
+        C = []
+        H = []
+        
+        for cam_color in cam02ucs_colors:
+            # Convert CAM02-UCS back to RGB
+            rgb = cspace_convert(cam_color, "CAM02-UCS", "sRGB1")
+            # Convert RGB to CIELAB
+            lab = cspace_convert(rgb, "sRGB1", "CIELab")
+            
+            L.append(lab[0])  # L* lightness
+            chroma = np.sqrt(lab[1]**2 + lab[2]**2)  # C* chroma in CIELAB
+            hue = np.degrees(np.arctan2(lab[2], lab[1])) % 360  # h* hue in CIELAB
+            C.append(chroma)
+            H.append(hue)
+    else:
+        # Original CAM02-UCS chroma calculation
+        L = [color[0] for color in cam02ucs_colors]
+        a = [color[1] for color in cam02ucs_colors]
+        b = [color[2] for color in cam02ucs_colors]
 
-    C = [np.sqrt(x*x + y*y) for x, y in zip(a, b)]
-    H = [np.degrees(np.arctan2(y, x)) % 360 for x, y in zip(a, b)]
+        C = [np.sqrt(x*x + y*y) for x, y in zip(a, b)]
+        H = [np.degrees(np.arctan2(y, x)) % 360 for x, y in zip(a, b)]
     
     if return_data:
-        return {
-            'lightness': L,
-            'chroma': C,
-            'hue': H,
-            'a': a,
-            'b': b
-        }
+        if use_lab_chroma:
+            # For LAB chroma, a and b are not directly available
+            return {
+                'lightness': L,
+                'chroma': C,
+                'hue': H
+            }
+        else:
+            # For CAM02-UCS, include a and b components
+            return {
+                'lightness': L,
+                'chroma': C,
+                'hue': H,
+                'a': a,
+                'b': b
+            }
 
     if show_chroma_hue:
         fig, axes = plt.subplots(3, 1, figsize=(6, 10))
